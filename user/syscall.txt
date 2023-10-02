@@ -1,0 +1,7 @@
+
+Pridaj do makefile
+Pridaj do user/user.h - deklaracia syscall
+Pridaj usys.pl
+Pridaj syscall.h
+Pridaj do syscall.c -> aj do arrayu aj nad to
+Implementuj sysproc.c
