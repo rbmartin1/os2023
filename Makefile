@@ -191,6 +191,7 @@ UPROGS=\
 	$U/_sleep\
 	$U/_pingpong\
 	$U/_prime\
+	$U/_revision1\
 
 
 
