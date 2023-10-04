@@ -14,12 +14,14 @@ main(int argc, char *argv[])
 
     if (pid == 0){
     write(p1[1],"1", 5);
+    close(p1[1]);
     close(p1[0]);
     close(p2[1]);
     read(p2[0],recv_buf, 5);
     printf("%d: received ping\n", getpid());
   } else {
     write(p2[1],"2", 5);
+    close(p2[0]);
     close(p2[1]);
     close(p1[1]);
     wait(0);
