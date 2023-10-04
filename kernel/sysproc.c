@@ -91,3 +91,18 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+uint64
+sys_revpid(void)
+{
+  return myproc()->pid;
+}
+
+uint64
+sys_printsys(void)
+{
+  char buff[100];
+  argstr(0, buff, sizeof(char*));
+  printf("%s ", buff);
+  return 0;
+}
