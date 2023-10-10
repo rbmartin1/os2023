@@ -24,6 +24,7 @@ int sleep(int);
 int uptime(void);
 int revpid(void);
 int printsys(void);
+int square(int);
 
 // ulib.c
 int stat(const char*, struct stat*);

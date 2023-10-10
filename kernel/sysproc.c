@@ -106,3 +106,11 @@ sys_printsys(void)
   printf("%s ", buff);
   return 0;
 }
+
+uint64
+sys_square(void)
+{
+  int x;
+  argint(0, &x);
+  return x*x;
+}

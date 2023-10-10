@@ -38,3 +38,4 @@ entry("sleep");
 entry("uptime");
 entry("revpid");
 entry("printsys");
+entry("square");

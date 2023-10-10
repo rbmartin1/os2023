@@ -22,3 +22,4 @@
 #define SYS_close  21
 #define SYS_revpid 22
 #define SYS_printsys  23
+#define SYS_square  24

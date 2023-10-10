@@ -14,15 +14,14 @@ main(int argc, char *argv[])
 }
 */
 
+
+
+/*
 int
 main(int argc, char *argv[])
-{
-    char *message;
+{   
 
-    for(int i = 0; i<sizeof(*argv);i++){
-        message = argv[i];
-        printsys(message);
-    }
-
+    printf("square = %d \n", square(atoi(argv[1])));
     exit(0);
 }
+*/
