@@ -75,7 +75,7 @@
 
 struct usyscall {
   int pid;  // Process ID
-  pid = getpid();
+
   
 };
 #endif

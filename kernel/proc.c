@@ -141,13 +141,6 @@ found:
     release(&p->lock);
     return 0;
 
-  if((p->usyscall = (uint64)kalloc()) == 0) {
-      freeproc(p);
-      release(&p->lock);
-      return 0;
-  }
-  u.pid = p->pid;
-  *(struct usyscall *)p->usyscall = u;
   }
 
   // Set up new context to start executing at forkret,
