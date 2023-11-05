@@ -324,13 +324,26 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
       panic("uvmcopy: page not present");
     pa = PTE2PA(*pte);
     flags = PTE_FLAGS(*pte);
-    if((mem = kalloc()) == 0)
-      goto err;
-    memmove(mem, (char*)pa, PGSIZE);
-    if(mappages(new, i, PGSIZE, (uint64)mem, flags) != 0){
-      kfree(mem);
+
+    // Record the page is COW mapping.
+    flags |= PTE_RSW;
+    // clear PTE_W in the PTEs of both child and parent*
+    flags &= (~PTE_W);
+
+
+    if(mappages(new, i, PGSIZE, (uint64)pa0, flags) != 0){
+      //kfree(mem);
       goto err;
     }
+
+    add_ref((void*)pa);
+    // Remove parent page table mapping.
+    uvmunmap(old, I, PGSIZE, 0);
+    // Re-add the mapping with write bit cleared flags.
+    if (mappages(old, I, PGSIZE, pa, flags) != 0) {
+      goto err;
+    }
+
   }
   return 0;
 
