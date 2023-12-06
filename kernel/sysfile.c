@@ -301,6 +301,36 @@ create(char *path, short type, short major, short minor)
   return 0;
 }
 
+static struct inode*
+symlinkroot(struct inode *ip){
+  uint visited[10];
+  char path[MAXPATH];
+
+  for(int i=0;i<10;i++){
+    visited[i] = ip->inum;
+
+    if(readi(ip,0,(uint64)path,0,MAXPATH)<=0){
+      goto rootFail;
+      }
+    iunlockput(ip);
+    if((ip=namei(path))==0){
+      return 0; 
+    }
+    for(int tail = i;tail>0;tail--){
+      if(ip->inum == visited[tail]){
+        return 0;
+      }
+    }
+    ilock(ip);
+    if(ip->type !=T_SYMLINK){
+      return ip;
+    }
+  }
+  rootFail:
+    iunlockput(ip);
+    return 0;
+}
+
 uint64
 sys_open(void)
 {
@@ -336,6 +366,14 @@ sys_open(void)
   }
 
   if(ip->type == T_DEVICE && (ip->major < 0 || ip->major >= NDEV)){
+    if((ip = symlinkroot(ip)) ==0){
+      end_op();
+      return -1;
+    }
+
+  }
+
+  if(ip->type == T_SYMLINK && (omode & O_NOFOLLOW) ==0){
     iunlockput(ip);
     end_op();
     return -1;
@@ -502,4 +540,31 @@ sys_pipe(void)
     return -1;
   }
   return 0;
+}
+
+uint64
+sys_symlink(){
+
+  struct inode *ip;
+  char target[MAXPATH],path[MAXPATH];
+
+  if(argstr(0,target,MAXPATH) < 0 || argstr(1,path,MAXPATH) < 0){
+    return -1;
+  }
+
+  begin_op();
+
+  if((ip=create(path,T_SYMLINK,0,0))==0){
+    end_op();
+    return -1;
+  }
+
+  if((writei(ip,0,(uint64)target,0,strlen(target)))<0){
+    iunlockput(ip);
+    end_op();
+    return-1;
+  }
+    iunlockput(ip);
+    end_op();
+    return 0;
 }
