@@ -320,6 +320,15 @@ fork(void)
 
   acquire(&np->lock);
   np->state = RUNNABLE;
+
+  for(int i = 0; i <NVMA; i++){
+    memmove(&np->vma[i],&p->vma[i],sizeof(p->vma[i]));
+    if(p->vma[i].f){
+      filedup(p->vma[i].f);
+    }
+  }
+
+
   release(&np->lock);
 
   return pid;
@@ -358,6 +367,10 @@ exit(int status)
       fileclose(f);
       p->ofile[fd] = 0;
     }
+  }
+
+  for(int i =0; i<NVMA;i++){
+    uvmunmap(p->pagetable,p->vma[i].address,p->vma[i].len/PGSIZE,1);
   }
 
   begin_op();

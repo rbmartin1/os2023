@@ -26,6 +26,9 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+//pridame mmap a munmap
+void* mmap(void *addr,int len,int prot, int flags,int fd,uint offset);
+int munmap(void *addr,int len);
 #ifdef LAB_NET
 int connect(uint32, uint16, uint16);
 #endif

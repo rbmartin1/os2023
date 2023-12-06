@@ -503,3 +503,106 @@ sys_pipe(void)
   }
   return 0;
 }
+
+uint64
+sys_mmap(void){
+
+  uint64 addr = 0;
+  int len,prot,flags,fd,offset;
+  struct file *file;
+  struct vma *vma = 0;
+
+  argint(1, &len);
+  argint(2, &prot);
+  argint(3, &flags);
+  argfd(4, &fd, &file);
+  argint(5,&offset);
+
+
+  if(!file->writable && (prot & PROT_WRITE) && (flags & MAP_SHARED))
+    return -1;
+
+  struct proc* p = myproc();
+  len=PGROUNDUP(len);
+
+  if(p->sz+len > MAXVA){
+    return -1;
+  }
+  if(offset < 0 || offset%PGSIZE){
+    return -1;
+  }
+
+  //hladame volne vma
+  for(int i = 0; i< NVMA; i++){
+    if(p->vma[i].address){
+      continue;
+    }
+
+    vma = &p->vma[i];
+    break;
+  }
+
+  if(!vma){
+    return -1;
+  }
+
+  if(addr==0){
+    vma->address = p->sz;
+  }
+  else{
+    vma->address = addr;
+  }
+
+  vma->len = len;
+  vma->prot = prot;
+  vma->flags = flags;
+  vma->fd = fd;
+  vma->offset = offset;
+  vma->f = file;
+  filedup(file);
+  p->sz+= len;
+
+  return vma->address;
+
+}
+
+
+uint64
+sys_munmap(void){
+  uint64 addr;
+  int len;
+
+  struct vma* vma = 0;
+  struct proc* p =myproc();
+
+argaddr(0,&addr);
+argint(1,&len);
+
+
+  addr=PGROUNDDOWN(addr);
+  len=PGROUNDUP(len);
+
+  for(int i= 0; i<NVMA; i++){
+    if(p->vma[i].address && addr >= p->vma[i].address && addr+len <= p->vma[i].address + p->vma[i].len){
+        vma = &p->vma[i];
+        break;
+      }
+  }
+
+  if(!vma){
+    return -1; 
+  }
+
+  if(addr != vma->address){
+    return -1;
+}
+  vma->address += len;
+  vma->len -= len;
+
+  if(vma->flags & MAP_SHARED){
+    filewrite(vma->f,addr,len);
+  }
+  uvmunmap(p->pagetable,addr,len/PGSIZE,1);
+  return 0;
+
+}
