@@ -30,7 +30,7 @@ struct {
   // Sorted by how recently the buffer was used.
   // head.next is most recent, head.prev is least.
   struct buf buckets[NBUCKET];
-  struct spinlock lks[NBUCKET]
+  struct spinlock lks[NBUCKET];
 } bcache;
 
 static void
@@ -39,6 +39,11 @@ bufinit(struct buf* b, uint dev, uint blockno){
   b->blockno = blockno;
   b->valid = 0;
   b->refcnt = 1;
+}
+
+static int
+myhash(int x){
+  return x%NBUCKET;
 }
 
 void
@@ -55,9 +60,6 @@ binit(void)
     bcache.buckets[i].next = &bcache.buckets[i];
   }
 
-  
-
-  
   for(b = bcache.buf; b < bcache.buf+NBUF; b++){
     b->next = bcache.buckets[0].next;
     b->prev = &bcache.buckets[0];
@@ -92,60 +94,60 @@ bget(uint dev, uint blockno)
 
   // Not cached.
   // Recycle the least recently used (LRU) unused buffer.
-  struct buf *victim = 0;
+   struct buf *victm = 0;
   uint minticks = ticks;
+  // tu nastavim obet
   for(b = bcache.buckets[id].next; b != &bcache.buckets[id]; b = b->next){
-    if(b->refcnt == 0 && b->lastuse <= minticks) {
-      minticks = b.lastuse;
-      victim = b;
+    if(b->refcnt == 0 && b->lastuse<=minticks){
+      minticks = b->lastuse;
+      victm = b;
     }
   }
 
-  if(!victim)
+  if(!victm){
     goto steal;
+  }
 
-  bufinit(victim, dev, blockno);
-
+  bufinit(victm,dev,blockno);
   release(&bcache.lks[id]);
-  acquiresleep(&victim->lock);
-  return victim
+  acquiresleep(&victm->lock);
+  return victm;
 
-steal:
+  steal:
     for(int i=0; i<NBUCKET; i++){
-      if(i == id)
-      continue;
-
-    acquire(&bcache.lks[i]);
-    minticks = ticks;
-    for(b = bcache.buckets[i].next; b != &bcache.buckets[i]; b = b->next){
-      if(b->refcnt==0 && b->lastuse <= minticks){
+      if(i == id){
+        continue;
+      }
+      acquire(&bcache.lks[i]);
+      minticks = ticks;
+      for(b = bcache.buckets[i].next; b != &bcache.buckets[i]; b = b->next){
+        if(b->refcnt == 0 && b->lastuse<=minticks){
         minticks = b->lastuse;
-        victim = b;
+        victm = b;
       }
     }
-
-    if(!victim){
+    if(!victm){
       release(&bcache.lks[i]);
       continue;
     }
 
-    bufinit(victim, dev, blockno);
+    bufinit(victm,dev,blockno);
 
-    victim->next->prev = victim->prev;
-    victim->prev->next = victim->next;
+    victm->next->prev = victm->prev;
+    victm->prev->next = victm->next;
+    release(&bcache.lks[i]);
+
+    victm->next = bcache.buckets[id].next;
+    bcache.buckets[id].next->prev = victm;
+    bcache.buckets[id].next = victm;
+    victm->prev = &bcache.buckets[id];
+
     release(&bcache.lks[id]);
-
-    victim->next = bcache.buckets[id].next;
-    bcache.buckets[id].next->prev = victim;
-    bcache.buckets[id].next = victim;
-    victim->prev = &bcache.buckets[id];
-
-
-    release(&bcache.lks[id]);
-    acquiresleep(&victim->lock);
-    return victim
-  
+    acquiresleep(&victm->lock);
+    return victm;
     }
+
+
   release(&bcache.lks[id]);
   panic("bget: no buffers");
 }
@@ -210,7 +212,3 @@ bunpin(struct buf *b) {
   release(&bcache.lks[id]);
 }
 
-static int
-myhash(int x){
-  return x%NBUCKET;
-}
